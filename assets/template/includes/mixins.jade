@@ -1,0 +1,13 @@
+mixin mainMenuList(items, indexActive)
+    ul.menu-list
+        each item, i in items
+            - var addClass = []
+            if i == 0
+                - addClass.push('first')
+            if i == items.length - 1
+                - addClass.push('last')
+            if i == indexActive
+                - addClass.push('active')
+
+            li.menu-item(class=addClass)
+                a.menu-link(href="#{item.href}")= item.caption

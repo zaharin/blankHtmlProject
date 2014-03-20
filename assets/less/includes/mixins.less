@@ -1,0 +1,52 @@
+@spriteWidth: 16px;
+@spriteHeight: 16px;
+@fileSprites: "../img/sprites.png";
+
+.sprite(@col: 1, @row : 1) {
+  background: url(@fileSprites) no-repeat;
+  background-position: (-1 * (@col - 1) * @spriteWidth) (-1 * (@row - 1) * @spriteWidth);
+}
+
+.pic-box(@max-width, @max-height) {
+  display: table;
+  width: @max-width;
+  height: @max-height;
+
+  div {
+    display: table-cell;
+    vertical-align: middle;
+    text-align: center;
+
+    img {
+      max-width: @max-width;
+      max-height: @max-height;
+    }
+  }
+}
+
+.triangleUp(@height, @color) {
+  position: absolute;
+  display: block;
+  content: "";
+  border-left: @height solid transparent;
+  border-right: @height solid transparent;
+  border-bottom: @height solid @color;
+  top: (-1 * @height);
+  left: 50%;
+  margin-left: (-1 * @height);
+}
+
+.inline-block-parent() {
+  font-size: 0;
+  line-height: 0;
+  //letter-spacing: -1px;
+}
+
+.inline-block-item(@font-size: 1em, @line-height: normal) {
+  display: inline-block;
+  *zoom: 1; /* Fix for IE7 */
+  *display: inline; /* Fix for IE7 */
+  font-size: @font-size;
+  line-height: @line-height;
+  //letter-spacing: @letter-spacing;
+}

@@ -1,0 +1,32 @@
+@import "includes/lessmix";
+@import "includes/responsive-mixins";
+
+body {
+  padding-top: 62px;
+}
+
+.vspace16 {
+  padding-top: 20px;
+  padding-bottom: 20px;
+}
+
+.container {
+  .center();
+
+  #responsive > .screenFromStart({
+    min-width: 300px;
+    width: auto;
+  });
+
+  #responsive > .screenFrom768({
+    width: 750px;
+  });
+
+  #responsive > .screenFrom980({
+    width: 960px;
+  });
+
+  #responsive > .screenFrom1200({
+    width: 1140px;
+  });
+}
