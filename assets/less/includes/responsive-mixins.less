@@ -1,0 +1,45 @@
+#responsive {
+
+  .screenFrom(@min, @rules) {
+    @media screen and (min-width: unit(@min, px)) {
+      @rules();
+    }
+  }
+
+  .screenTo(@max, @rules) {
+    @media screen and (max-width: unit(@max, px)) {
+      @rules();
+    }
+  }
+
+  .screenFromTo(@min, @max, @rules) {
+    @media screen and (min-width: unit(@min, px)) and (max-width: unit(@max, px)) {
+      @rules();
+    }
+  }
+
+  .screenFromStart(@rules) {
+    .screenFrom(0, @rules);
+  }
+
+  .screenFrom480(@rules) {
+    .screenFrom(480, @rules);
+  }
+
+  .screenFrom768(@rules) {
+    .screenFrom(768, @rules);
+  }
+
+  .screenFrom980(@rules) {
+    .screenFrom(980, @rules);
+  }
+
+  .screenFrom1200(@rules) {
+    .screenFrom(1200, @rules);
+  }
+
+  .screenTo767(@rules) {
+    .screenTo(767, @rules);
+  }
+
+}
