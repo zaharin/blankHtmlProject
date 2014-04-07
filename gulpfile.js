@@ -13,6 +13,8 @@ var concat     = require('gulp-concat');
 var uglify     = require('gulp-uglify');
 var jshint     = require('gulp-jshint');
 var typescript = require('gulp-typescript');
+var rename     = require('gulp-rename');
+var minifycss  = require('gulp-minify-css');
 
 var connect = require('connect');
 var path    = require('path');
@@ -31,7 +33,13 @@ function getDestPath(endDir) {
     if (destDir && destDir[destDir.length - 1] !== '/') destDir += '/';
     if (endDir && endDir[0] === '/') endDir = endDir.slice(1);
 
-    return endDir? destDir + endDir: destDir;
+    return endDir ? destDir + endDir: destDir;
+}
+
+function onError() {
+    var args = Array.prototype.slice.call(arguments);
+    gutil.log.apply(gutil.log, args);
+    gutil.beep();
 }
 
 gulp.task('less', function() {
@@ -39,10 +47,13 @@ gulp.task('less', function() {
         .pipe(less({
             paths: [ path.join(__dirname, 'less', 'includes') ]
         }))
+        .on('error', onError)
         .pipe(prefix("last 2 version", "> 1%", "ie 8", "ie 7"))
         .pipe(gulp.dest(getDestPath('css')))
-        .pipe(livereload(server))
-        .on('error', gutil.log);
+        .pipe(minifycss())
+        .pipe(rename({ suffix: '.min' }))
+        .pipe(gulp.dest(getDestPath('css')))
+        .pipe(livereload(server));
 });
 
 gulp.task('jade', function() {
@@ -54,6 +65,7 @@ gulp.task('jade', function() {
             'locals': locals,
             pretty: true
         }))
+        .on('error', onError)
         .pipe(htmlhint({
             "tag-pair": true,
             "style-disabled": true,
@@ -69,15 +81,16 @@ gulp.task('jade', function() {
             indent_size: 4
         }))
         .pipe(gulp.dest(getDestPath('')))
-        .pipe(livereload(server))
-        .on('error', gutil.log);
+        .pipe(livereload(server));
 });
 
 gulp.task('ts', function () {
     gulp.src('./assets/js/**.ts')
         .pipe(changed(getDestPath('js')))
         .pipe(typescript())
-        .pipe(gulp.dest(getDestPath('js')));
+        .on('error', onError)
+        .pipe(gulp.dest(getDestPath('js')))
+        .pipe(livereload(server));
 });
 
 gulp.task('js', function() {
@@ -86,42 +99,48 @@ gulp.task('js', function() {
         .pipe(jshint())
         .pipe(jshint.reporter('default'))
         .pipe(gulp.dest(getDestPath('js')))
-        .pipe(livereload(server))
-        .on('error', gutil.log);
+        .pipe(livereload(server));
 });
 
 gulp.task('images', function() {
     gulp.src(['./assets/img/**', '!/.gitignore'])
-        .pipe(imagemin())
         .pipe(changed(getDestPath('img')))
+        .pipe(imagemin())
+        .on('error', onError)
         .pipe(gulp.dest(getDestPath('img')))
-        .pipe(livereload(server))
-        .on('error', gutil.log);
+        .pipe(livereload(server));
 });
 
 gulp.task('static', function() {
     return gulp.src(['./static/**', '!/.gitignore'])
         .pipe(changed(getDestPath('')))
         .pipe(gulp.dest(getDestPath('')))
-        .pipe(livereload(server))
-        .on('error', gutil.log);
+        .pipe(livereload(server));
 });
 
 gulp.task('fonts', function() {
     return gulp.src(['./assets/fonts/**', '!/.gitignore'])
         .pipe(changed(getDestPath('fonts')))
         .pipe(gulp.dest(getDestPath('fonts')))
-        .pipe(livereload(server))
-        .on('error', gutil.log);
+        .pipe(livereload(server));
 });
 
 gulp.task('clean', function() {
     gulp.src(getDestPath('**'), { read: false })
         .pipe(clean())
-        .on('error', gutil.log);
+        .on('error', onError);
 });
 
 gulp.task('compile', ['less', 'jade',  'ts', 'js', 'images', 'static', 'fonts']);
+
+gulp.task('build', function() {
+    options.isBuild = true;
+    gulp.run('clean', function() {
+        setTimeout(function() {
+            gulp.run('less', 'jade',  'ts', 'js', 'images', 'static', 'fonts', function() {});
+        }, 1000);
+    });
+});
 
 gulp.task('http-server', function() {
     connect()
