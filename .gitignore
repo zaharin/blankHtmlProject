@@ -1,23 +1,7 @@
 .DS_Store
 .idea
+*.zip
+*.rar
 
-/assets/fonts/*
-/assets/img/*
-
+/node_modules
 /public/*
-
-/static/*
-!/static/favicon.ico
-!/static/js/
-!/static/js/vendor/
-!/static/js/vendor/**
-/static/js/vendor/**.DS_Store
-
-/source/*
-/source/psd/*
-!/source/psd/sprites.psd
-!/source/psd/
-!/source/jpg/
-/source/jpg/*
-!/source/style/
-/source/style/*

@@ -12,6 +12,7 @@ var prettify   = require('gulp-prettify');
 var concat     = require('gulp-concat');
 var uglify     = require('gulp-uglify');
 var jshint     = require('gulp-jshint');
+var typescript = require('gulp-typescript');
 
 var connect = require('connect');
 var path    = require('path');
@@ -47,7 +48,8 @@ gulp.task('less', function() {
 gulp.task('jade', function() {
     var locals = {};
 
-    gulp.src(['./assets/template/*.jade', '!./assets/template/_*.jade'])
+    gulp.src(['./assets/template/*.jade'])
+        .pipe(changed(getDestPath(''), { extension: '.html' }))
         .pipe(jade({
             'locals': locals,
             pretty: true
@@ -71,8 +73,16 @@ gulp.task('jade', function() {
         .on('error', gutil.log);
 });
 
+gulp.task('ts', function () {
+    gulp.src('./assets/js/**.ts')
+        .pipe(changed(getDestPath('js')))
+        .pipe(typescript())
+        .pipe(gulp.dest(getDestPath('js')));
+});
+
 gulp.task('js', function() {
-    gulp.src(['./assets/js/*.js'])
+    gulp.src(['./assets/js/**.js'])
+        .pipe(changed(getDestPath('js')))
         .pipe(jshint())
         .pipe(jshint.reporter('default'))
         .pipe(gulp.dest(getDestPath('js')))
@@ -81,22 +91,25 @@ gulp.task('js', function() {
 });
 
 gulp.task('images', function() {
-    gulp.src('./assets/img/**')
-        //.pipe(imagemin())
+    gulp.src(['./assets/img/**', '!/.gitignore'])
+        .pipe(imagemin())
+        .pipe(changed(getDestPath('img')))
         .pipe(gulp.dest(getDestPath('img')))
         .pipe(livereload(server))
         .on('error', gutil.log);
 });
 
 gulp.task('static', function() {
-    return gulp.src(['./assets/static/**'])
+    return gulp.src(['./static/**', '!/.gitignore'])
+        .pipe(changed(getDestPath('')))
         .pipe(gulp.dest(getDestPath('')))
         .pipe(livereload(server))
         .on('error', gutil.log);
 });
 
 gulp.task('fonts', function() {
-    return gulp.src(['./assets/fonts/**'])
+    return gulp.src(['./assets/fonts/**', '!/.gitignore'])
+        .pipe(changed(getDestPath('fonts')))
         .pipe(gulp.dest(getDestPath('fonts')))
         .pipe(livereload(server))
         .on('error', gutil.log);
@@ -108,7 +121,7 @@ gulp.task('clean', function() {
         .on('error', gutil.log);
 });
 
-gulp.task('compile', ['less', 'jade',  'js', 'images', 'static', 'fonts']);
+gulp.task('compile', ['less', 'jade',  'ts', 'js', 'images', 'static', 'fonts']);
 
 gulp.task('http-server', function() {
     connect()
@@ -126,7 +139,8 @@ gulp.task('watch', ['compile'], function() {
         gulp.watch('./assets/less/**/*.less', ['less']);
         gulp.watch('./assets/template/**/*.jade', ['jade']);
         gulp.watch('./assets/img/**', ['images']);
-        gulp.watch('./assets/js/*.js', ['js']);
+        gulp.watch('./assets/js/**.js', ['js']);
+        gulp.watch('./assets/js/**.ts', ['ts']);
         gulp.watch('./assets/static/**', ['static']);
     });
 
