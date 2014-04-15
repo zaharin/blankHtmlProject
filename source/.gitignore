@@ -1,0 +1,8 @@
+*
+/psd/*
+!/psd/sprites.psd
+!/psd/
+!/jpg/
+/jpg/*
+!/design/
+/design/*

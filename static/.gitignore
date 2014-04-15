@@ -1,0 +1,4 @@
+*
+!/favicon.ico
+!/js/**
+/js/**.DS_Store
