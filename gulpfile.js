@@ -4,7 +4,6 @@ var prefix     = require('gulp-autoprefixer');
 var jade       = require('gulp-jade');
 var imagemin   = require('gulp-imagemin');
 var livereload = require('gulp-livereload');
-var clean      = require('gulp-clean');
 var gutil      = require('gulp-util');
 var changed    = require('gulp-changed');
 var htmlhint   = require('gulp-htmlhint');
@@ -16,22 +15,89 @@ var typescript = require('gulp-typescript');
 var rename     = require('gulp-rename');
 var minifycss  = require('gulp-minify-css');
 
-var connect = require('connect');
-var path    = require('path');
+var connect   = require('connect');
+var connectLR = require('connect-livereload');
+var path      = require('path');
+var _         = require('underscore');
+var rmdir     = require('rmdir');
 
 var options = {
-    isBuild: false,
-    buildPath: './build/',
-    devPath: './public/'
+    development: true,
+    dirDevelopment: 'public',
+    dirProduction : 'build',
+
+    src: {
+        less: 'assets/less/main.less',
+        jade: 'assets/template/*.jade',
+        js  : 'assets/js/**/*.js',
+        images: 'assets/img/**/*.{png,jpg,jpeg,gif,svg}',
+        static: 'static/**',
+        fonts : 'assets/fonts/**',
+        clean : '$dir$',
+        xprecise: 'assets/_xprecise/**'
+    },
+
+    dest: {
+        less: '$dir$/css',
+        jade: '$dir$',
+        js  : '$dir$/js',
+        images: '$dir$/img',
+        static: '$dir$',
+        fonts : '$dir$/fonts',
+        xprecise: '$dir$/_xprecise'
+    },
+
+    watch: {
+        less: {
+            glob: 'assets/less/**/*.less',
+            opt: ['less']
+        },
+        jade: {
+            glob: 'assets/template/**/*.jade',
+            opt: ['jade']
+        },
+        js  : {
+            glob: 'assets/js/**/*.js',
+            opt: ['js']
+        },
+        images: {
+            glob: 'assets/img/**/*.{png,jpg,jpeg,gif,svg}',
+            opt: ['images']
+        },
+        static: {
+            glob: 'static/**',
+            opt: ['static']
+        },
+        fonts : {
+            glob: 'assets/fonts/**',
+            opt: ['fonts']
+        },
+        xprecise : {
+            glob: 'assets/_xprecise/*.jpg',
+            opt: ['xprecise']
+        }
+    }
 };
 
-function getDestPath(endDir) {
-    var destDir = options.isBuild ? options.buildPath : options.devPath;
+function substitution() {
+    var dir = options.development ? options.dirDevelopment : options.dirProduction;
 
-    if (destDir && destDir[destDir.length - 1] !== '/') destDir += '/';
-    if (endDir && endDir[0] === '/') endDir = endDir.slice(1);
+    _.each(options.src, function(item, index) {
+        options.src[index] = item.replace('$dir$', dir);
+    });
 
-    return endDir ? destDir + endDir: destDir;
+    _.each(options.dest, function(item, index) {
+        options.dest[index]= item.replace('$dir$', dir);
+    });
+};
+
+function run() {
+    if (process.argv.length > 2)
+        options.development = process.argv[2] !== 'build';
+    if (process.argv.length > 3)
+        options.development = process.argv[3] !== '-b';
+
+    substitution();
 }
 
 function onError() {
@@ -41,24 +107,25 @@ function onError() {
 }
 
 gulp.task('less', function() {
-    gulp.src('./assets/less/main.less')
+    gulp.src(options.src.less)
         .pipe(less({
             paths: [ path.join(__dirname, 'less', 'includes') ]
         }))
         .on('error', onError)
         .pipe(prefix("last 2 version", "> 1%", "ie 8", "ie 7"))
-        .pipe(gulp.dest(getDestPath('css')))
+        .pipe(gulp.dest(options.dest.less))
         .pipe(minifycss())
         .pipe(rename({ suffix: '.min' }))
-        .pipe(gulp.dest(getDestPath('css')));
+        .pipe(gulp.dest(options.dest.less));
 });
 
 gulp.task('jade', function() {
     var locals = {};
+    locals.debugMode = options.development;
 
-    gulp.src(['./assets/template/*.jade'])
+    return gulp.src(options.src.jade)
         .pipe(jade({
-            'locals': locals,
+            locals: locals,
             pretty: true
         }))
         .on('error', onError)
@@ -76,66 +143,72 @@ gulp.task('jade', function() {
             indent_char: ' ',
             indent_size: 4
         }))
-        .pipe(gulp.dest(getDestPath('')));
+        .pipe(gulp.dest(options.dest.jade));
 });
 
-gulp.task('ts', function () {
-    gulp.src(['./assets/js/**/*.ts', '!./assets/js/d.ts/**/*'])
-        .pipe(changed(getDestPath('js', { extension: '.js' })))
+//gulp.task('ts', function () {
+    //gulp.src(['./assets/js/**/*.ts', '!./assets/js/d.ts/**/*'])
+/*        .pipe(changed(getDestPath('js', { extension: '.js' })))
         .pipe(typescript())
         .on('error', onError)
         .pipe(gulp.dest(getDestPath('js')));
-});
+});*/
 
 gulp.task('js', function() {
-    gulp.src(['./assets/js/**/*.js', '!./assets/js/d.ts/**/*'])
-        .pipe(changed(getDestPath('js')))
+    return gulp.src(options.src.js)
+        .pipe(changed(options.dest.js))
         .pipe(jshint())
         .pipe(jshint.reporter('default'))
-        .pipe(gulp.dest(getDestPath('js')));
+        .pipe(gulp.dest(options.dest.js));
 });
 
 gulp.task('images', function() {
-    gulp.src(['./assets/img/{,*/}*.{png,jpg,jpeg,gif,webp,svg}'])
-        .pipe(changed(getDestPath('img')))
+    return gulp.src(options.src.images)
+        .pipe(changed(options.dest.images))
         .pipe(imagemin())
         .on('error', onError)
-        .pipe(gulp.dest(getDestPath('img')));
+        .pipe(gulp.dest(options.dest.images));
 });
 
 gulp.task('static', function() {
-    return gulp.src(['./static/**', '!/.gitignore'])
-        .pipe(changed(getDestPath('')))
-        .pipe(gulp.dest(getDestPath('')));
+    return gulp.src(options.src.static)
+        .pipe(changed(options.dest.static))
+        .pipe(gulp.dest(options.dest.static));
 });
 
 gulp.task('fonts', function() {
-    return gulp.src(['./assets/fonts/**', '!/.gitignore'])
-        .pipe(changed(getDestPath('fonts')))
-        .pipe(gulp.dest(getDestPath('fonts')));
+    return gulp.src(options.src.fonts)
+        .pipe(changed(options.dest.fonts))
+        .pipe(gulp.dest(options.dest.fonts));
+});
+
+gulp.task('xprecise', function() {
+    if (options.development)
+        return gulp.src(options.src.xprecise)
+            .pipe(changed(options.dest.xprecise))
+            .pipe(gulp.dest(options.dest.xprecise));
+    else
+        return null;
 });
 
 gulp.task('clean', function() {
-    gulp.src(getDestPath('**'), { read: false })
-        .pipe(clean())
-        .on('error', onError);
-});
-
-gulp.task('compile', ['less', 'jade',  'ts', 'js', 'images', 'static', 'fonts']);
-
-gulp.task('build', function() {
-    options.isBuild = true;
-    gulp.run('clean', function() {
-        setTimeout(function() {
-            gulp.run('less', 'jade',  'ts', 'js', 'images', 'static', 'fonts', function() {});
-        }, 1000);
+    rmdir(options.src.clean, function(err, dirs, files){
+        if (err) {
+            gutil.log(err);
+            gutil.beep();
+        }
     });
+    return null;
 });
+
+gulp.task('compile', ['less', 'jade',  /*'ts',*/ 'js', 'images', 'static', 'fonts', 'xprecise']);
+
+gulp.task('build', ['compile']);
 
 gulp.task('http-server', function() {
     connect()
-        .use(require('connect-livereload')())
-        .use(connect.static(getDestPath('')))
+        .use(connectLR())
+        .use(connect.static(options.dir()))
         .listen('9000');
 
     console.log('Server listening on http://localhost:9000');
@@ -144,18 +217,17 @@ gulp.task('http-server', function() {
 gulp.task('watch', ['compile', 'http-server'], function() {
     var server = livereload();
 
-    gulp.watch('./assets/less/**/*.less', ['less']);
-    gulp.watch('./assets/template/**/*.jade', ['jade']);
-    gulp.watch('./assets/img/**/*', ['images']);
-    gulp.watch('./assets/js/**/*.js', ['js']);
-    gulp.watch('./assets/js/**/*.ts', ['ts']);
-    gulp.watch('./assets/static/**/*', ['static']);
-    gulp.watch('./assets/fonts/**/*', ['fonts']);
+    _.each(options.watch, function(prop){
+        gulp.watch(prop.glob, prop.opt);
+        gutil.log('watch', prop.glob, prop.opt);
+    });
 
-    gulp.watch(getDestPath('**')).on('change', function(file) {
+    gulp.watch(options.dir() + '/**').on('change', function(file) {
         server.changed(file.path);
-        //gutil.log('change file: ' + path.basename(file.path));
+        gutil.log('change file:', path.basename(file.path));
     });
 });
 
 gulp.task('default', ['compile']);
+
+run();
